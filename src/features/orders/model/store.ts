@@ -1,6 +1,8 @@
 import { reactive, readonly } from "vue";
 import type { Item, Order, Notice, Receipt } from "../../../shared/contracts";
 import { initialOrders, nextOrder } from "../lib/offers";
+import { seasonAt } from "../../clock/lib/seasons";
+import type { Season } from "../../clock/lib/seasons";
 interface Ports {
   reserve: (
     owner: string,
@@ -11,13 +13,18 @@ interface Ports {
   consume: (id: string) => Receipt | null;
   release: (id: string) => void;
 }
-export function createOrders(ports: Ports, notice: Notice, hour: number) {
+export function createOrders(
+  ports: Ports,
+  notice: Notice,
+  hour: number,
+  season: Season = seasonAt(hour),
+) {
   const state = reactive({
     coins: 180,
     xp: 0,
     delivered: 0,
     serial: 3,
-    orders: initialOrders(hour),
+    orders: initialOrders(hour, season),
   });
   const spend = (n: number) => {
     if (n < 0 || state.coins < n) return false;
@@ -62,7 +69,10 @@ export function createOrders(ports: Ports, notice: Notice, hour: number) {
       state.coins += o.reward;
       state.xp += 40 + (receipt.quality > 1 ? 10 : 0);
       state.delivered++;
-      state.orders.push(nextOrder(++state.serial, hour));
+      // 新合约按交付时刻的季节生成，条款随新季节重定
+      state.orders.push(
+        nextOrder(++state.serial, hour, seasonAt(hour)),
+      );
       notice(
         `交付成功，收入 ¥${o.reward} / +${40 + (receipt.quality > 1 ? 10 : 0)} 经验`,
       );
@@ -75,6 +85,7 @@ export function createOrders(ports: Ports, notice: Notice, hour: number) {
         delete o.reservation;
       }
     },
+    /** 合约期限为生成时锁定的绝对时刻，逐小时检查，跨季不顺延 */
     tick(hour: number) {
       for (const o of state.orders)
         if (

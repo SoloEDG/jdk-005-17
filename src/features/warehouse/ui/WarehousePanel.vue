@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import type { Batch } from "../../../shared/contracts";
 import { items } from "../../../shared/catalog";
+import { decayRate, remainingHours } from "../lib/storage";
 defineProps<{
   batches: readonly Readonly<Batch>[];
   hour: number;
+  temp: number;
   free: (id: string) => number;
   wasted: number;
 }>();
@@ -23,8 +25,12 @@ defineEmits<{ sell: [id: string] }>();
             >{{ items[batch.item].name }}
             <em>{{ "★".repeat(batch.quality) }}</em></strong
           ><small
-            >{{ batch.id }} · {{ batch.source }} · {{ batch.expires - hour }}h
-            后到期</small
+            >{{ batch.id }} · {{ batch.source }}<br />保鲜余量
+            {{ batch.freshness.toFixed(1) }}h · 按当前温度约
+            {{ remainingHours(batch, temp).toFixed(0) }}h 后耗尽
+            <em
+              >(腐坏 ×{{ decayRate(batch.item, temp).toFixed(2) }}/h)</em
+            ></small
           >
         </div>
         <div class="quantity">
@@ -37,6 +43,8 @@ defineEmits<{ sell: [id: string] }>();
       </div>
       <p v-if="!batches.length" class="empty">谷仓空了，去田里收获吧。</p>
     </div>
-    <p class="hint">按先到期批次配货 · 已占用货物不可出售</p>
+    <p class="hint">
+      逐批按温度结算保鲜 · 冬季冷藏减速、夏季加速 · 先消耗最不新鲜批次
+    </p>
   </section>
 </template>

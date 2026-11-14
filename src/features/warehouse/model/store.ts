@@ -5,9 +5,11 @@ import type {
   Reservation,
   Notice,
   Receipt,
+  Tick,
 } from "../../../shared/contracts";
 import { allocate, available } from "../lib/allocation";
-import { makeBatch } from "../lib/storage";
+import { decayRate, makeBatch } from "../lib/storage";
+
 export function createWarehouse(now: () => number, notice: Notice) {
   const state = reactive({
     batches: [] as Batch[],
@@ -19,12 +21,13 @@ export function createWarehouse(now: () => number, notice: Notice) {
     item: Item,
     n: number,
     q = 1,
-    hour = now(),
+    _hour = now(),
     source = "田间收获",
+    freshness?: number,
   ) => {
-    state.batches.push(
-      makeBatch(item, n, q, hour, `b${++state.serial}`, source),
-    );
+    const batch = makeBatch(item, n, q, _hour, `b${++state.serial}`, source);
+    if (freshness !== undefined) batch.freshness = freshness;
+    state.batches.push(batch);
   };
   add("carrot", 8, 2);
   add("berry", 6, 2);
@@ -42,7 +45,6 @@ export function createWarehouse(now: () => number, notice: Notice) {
         state.reservations,
         item,
         n,
-        now(),
         minQuality,
       );
       if (!allocations) return null;
@@ -55,7 +57,7 @@ export function createWarehouse(now: () => number, notice: Notice) {
       if (!r) return null;
       for (const a of r.allocations) {
         const b = state.batches.find((b) => b.id === a.batch);
-        if (!b || b.quantity < a.quantity || b.expires <= now()) return null;
+        if (!b || b.quantity < a.quantity || b.freshness <= 0) return null;
       }
       const receipt: Receipt = {
         quality: Math.min(
@@ -84,15 +86,25 @@ export function createWarehouse(now: () => number, notice: Notice) {
       if (!b.quantity) state.batches = state.batches.filter((b) => b.id !== id);
       return b.item;
     },
-    tick(hour: number) {
-      const expired = state.batches.filter((b) => b.expires <= hour);
-      state.wasted += expired.reduce((n, b) => n + b.quantity, 0);
-      state.batches = state.batches.filter((b) => b.expires > hour);
-      state.reservations = state.reservations.filter(
-        (r) =>
-          !r.allocations.some((a) => expired.some((b) => b.id === a.batch)),
-      );
-      if (expired.length) notice(`${expired.length} 批库存已到保质期`);
+    /**
+     * 逐小时结算保鲜消耗：每个批次按当前温度独立扣减 freshness。
+     * 被订单/工坊占用的批次同样腐坏；腐坏后自动释放其占用。
+     */
+    tick(tick: Tick) {
+      const spoiled: Batch[] = [];
+      for (const b of state.batches) {
+        b.freshness = Math.max(0, b.freshness - decayRate(b.item, tick.temp));
+        if (b.freshness <= 0) spoiled.push(b);
+      }
+      if (spoiled.length) {
+        state.wasted += spoiled.reduce((n, b) => n + b.quantity, 0);
+        const ids = new Set(spoiled.map((b) => b.id));
+        state.batches = state.batches.filter((b) => b.freshness > 0);
+        state.reservations = state.reservations.filter(
+          (r) => !r.allocations.some((a) => ids.has(a.batch)),
+        );
+        notice(`${spoiled.length} 批库存已耗尽保鲜期`);
+      }
     },
     snapshot: () => JSON.parse(JSON.stringify(state)) as typeof state,
     restore: (data: typeof state) => {

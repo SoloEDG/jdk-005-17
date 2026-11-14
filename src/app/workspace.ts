@@ -23,9 +23,10 @@ export function createWorkspace() {
     () => clock.state.hour,
     clock.setHour,
     (t) => {
-      warehouse.tick(t.to);
+      // 同一个季节时刻同时驱动库存保鲜、田间生长、工坊工时与订单期限
+      warehouse.tick(t);
       fields.tick(t);
-      workshop.tick(t.to);
+      workshop.tick(t);
       orders.tick(t.to);
     },
   );

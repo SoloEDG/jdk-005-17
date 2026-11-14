@@ -3,13 +3,21 @@ import type { Plot } from "../../../shared/contracts";
 import { items } from "../../../shared/catalog";
 import { growthStage, sceneTrees } from "../lib/scene";
 import { ready } from "../lib/crops";
-defineProps<{ plots: readonly Readonly<Plot>[]; weather: string }>();
+import type { Season } from "../../clock/lib/seasons";
+defineProps<{
+  plots: readonly Readonly<Plot>[];
+  weather: string;
+  season: Season;
+}>();
 defineEmits<{ plot: [id: number] }>();
 </script>
 <template>
-  <div class="farm-scene" :class="weather">
+  <div class="farm-scene" :class="[weather, season]">
     <div class="cloud cloud-one"></div>
     <div class="cloud cloud-two"></div>
+    <div v-if="weather === 'snow'" class="snowfall">
+      <i v-for="n in 18" :key="n" :style="{ left: `${(n * 5.5) % 100}%`, animationDelay: `${(n % 6) * 0.7}s`, animationDuration: `${4 + (n % 5)}s` }"></i>
+    </div>
     <div class="mountain"></div>
     <div class="forest">
       <div
@@ -37,7 +45,10 @@ defineEmits<{ plot: [id: number] }>();
         v-for="plot in plots"
         :key="plot.id"
         class="plot"
-        :class="{ 'is-ready': plot.crop && ready(plot.crop) }"
+        :class="{
+          'is-ready': plot.crop && ready(plot.crop),
+          'is-dormant': plot.crop?.dormant,
+        }"
         :data-plot="plot.id"
         @click="$emit('plot', plot.id)"
       >
@@ -47,8 +58,10 @@ defineEmits<{ plot: [id: number] }>();
           :style="{ fontSize: `${14 + growthStage(plot) * 8}px` }"
           >{{
             growthStage(plot) === 1 ? "🌱" : items[plot.crop.item].icon
-          }}</span><span v-else class="empty-plot">+</span
+          }}</span
+        ><span v-else class="empty-plot">+</span
         ><b v-if="plot.crop && ready(plot.crop)" class="ready-mark">!</b
+        ><b v-if="plot.crop?.dormant" class="frost-mark" title="冬季休眠中">❄</b
         ><i
           v-if="plot.crop"
           class="water-meter"

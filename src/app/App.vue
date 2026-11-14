@@ -1,6 +1,13 @@
 <script setup lang="ts">
-import { ref, onUnmounted } from "vue";
-import { ClockPanel, weatherAt } from "../features/clock";
+import { ref, computed, onUnmounted } from "vue";
+import {
+  ClockPanel,
+  weatherAt,
+  seasonAt,
+  seasonInfo,
+  tempAt,
+  yearOf,
+} from "../features/clock";
 import { FarmScene, FieldsPanel } from "../features/fields";
 import { WarehousePanel } from "../features/warehouse";
 import { WorkshopPanel } from "../features/workshop";
@@ -10,6 +17,11 @@ const farm = createWorkspace(),
   active = ref(0),
   tab = ref("warehouse");
 const { clock, warehouse, fields, workshop, orders, engine, notices } = farm;
+const currentWeather = computed(() => weatherAt(clock.state.hour));
+const currentSeason = computed(() => seasonAt(clock.state.hour));
+const currentTemp = computed(() =>
+  tempAt(clock.state.hour, currentWeather.value),
+);
 const timer = setInterval(() => {
   if (!clock.state.paused) engine.advance(1);
 }, 1500);
@@ -30,7 +42,12 @@ function reset() {
       </nav>
       <div class="farmer">
         <span>👒</span>
-        <div>农场主<small>初夏 · 第一年</small></div>
+        <div
+          >农场主<small>{{ seasonInfo[currentSeason].name }} · 第{{
+            yearOf(clock.state.hour)
+          }}年</small
+          ></div
+        >
       </div>
     </header>
     <main>
@@ -63,12 +80,14 @@ function reset() {
           </div>
           <FarmScene
             :plots="fields.state.plots"
-            :weather="weatherAt(clock.state.hour)"
+            :weather="currentWeather"
+            :season="currentSeason"
             @plot="(id) => (active = id)"
           /><FieldsPanel
             :plots="fields.state.plots"
             :selected="fields.state.selected"
             :active="active"
+            :temp="currentTemp"
             @select="fields.select"
             @plant="(id) => fields.plant(id, clock.state.hour)"
             @water="fields.water"
@@ -104,6 +123,7 @@ function reset() {
             v-if="tab === 'warehouse'"
             :batches="warehouse.state.batches"
             :hour="clock.state.hour"
+            :temp="currentTemp"
             :free="warehouse.free"
             :wasted="warehouse.state.wasted"
             @sell="farm.sell"
@@ -111,8 +131,9 @@ function reset() {
             v-if="tab === 'workshop'"
             :jobs="workshop.state.jobs"
             :hour="clock.state.hour"
+            :temp="currentTemp"
             @enqueue="(id) => workshop.enqueue(id, clock.state.hour)"
-            @claim="(id) => workshop.claim(id, clock.state.hour)"
+            @claim="(id) => workshop.claim(id)"
           /><OrdersPanel
             v-if="tab === 'orders'"
             :orders="orders.state.orders"

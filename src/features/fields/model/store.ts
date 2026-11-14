@@ -29,30 +29,38 @@ export function createFields(
         growth: 0,
         water: 70,
         stress: 0,
+        frostStress: 0,
+        dormant: false,
         harvests: 0,
       };
       notice("种下了新的希望");
     },
     water(id: number) {
       const c = state.plots[id]?.crop;
-      if (c) c.water = 100;
+      if (c && !c.dormant) c.water = 100;
     },
     harvest(id: number) {
       const plot = state.plots[id],
         crop = plot?.crop;
       if (!crop || !ready(crop)) return;
       const def = crops[crop.item]!;
-      harvest(crop.item, def.yield, crop.stress <= 2 ? 2 : 1);
+      // 受冻与干旱都会拉低品质：压力越小品质越高
+      const quality = crop.stress <= 2 && crop.frostStress <= 4 ? 2 : 1;
+      harvest(crop.item, def.yield, quality);
       if (crop.harvests < def.repeat) {
         crop.growth = 0;
         crop.harvests++;
       } else plot.crop = null;
-      notice("收获已按品质分批入仓");
+      notice(
+        crop.frostStress > 0
+          ? "收获已按品质分批入仓（本季经历过霜冻）"
+          : "收获已按品质分批入仓",
+      );
     },
     tick(tick: Tick) {
       for (const plot of state.plots)
         if (plot.crop)
-          plot.crop = grow(plot.crop, tick.weather, tick.to - tick.from);
+          plot.crop = grow(plot.crop, tick, tick.to - tick.from);
     },
     snapshot: () => JSON.parse(JSON.stringify(state)) as typeof state,
     restore: (data: typeof state) => {

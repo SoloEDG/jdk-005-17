@@ -174,12 +174,13 @@ h1 {
 }
 .clock-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   background: #eeefe1;
   border: 1px solid #e0e4d1;
   border-radius: 7px;
   padding: 17px 22px;
-  gap: 26px;
+  gap: 16px 26px;
   margin-bottom: 27px;
 }
 .date-block {
@@ -192,6 +193,12 @@ h1 {
 }
 .date-block .eyebrow {
   font-size: 8px;
+}
+.date-block small {
+  display: block;
+  font-size: 10px;
+  color: #96a187;
+  margin-top: 2px;
 }
 .weather {
   display: flex;
@@ -895,4 +902,122 @@ progress {
   .main-grid aside {
     margin-top: 10px;
   }
+}
+
+/* ===== 四季流转：季节色调、降雪与休眠标记 ===== */
+.farm-scene.spring {
+  filter: hue-rotate(-8deg) saturate(1.05);
+}
+.farm-scene.summer {
+  filter: saturate(1.25) brightness(1.03);
+}
+.farm-scene.autumn {
+  filter: sepia(0.28) saturate(1.1) hue-rotate(-18deg);
+}
+.farm-scene.winter {
+  filter: saturate(0.55) brightness(1.06);
+  background: linear-gradient(#d7e3ec 0%, #e2ebf1 29%, #c9d6df 29%, #c9d6df 100%);
+}
+.farm-scene.winter.snow {
+  background: linear-gradient(#c8d8e6 0%, #dbe7f0 29%, #dfe8f0 29%, #dfe8f0 100%);
+}
+.farm-scene.winter .plot {
+  background: #a9bcc9;
+  border-color: #c4d3de;
+  border-bottom-color: #8fa6b6;
+  box-shadow: 0 3px #e8eff5;
+}
+.farm-scene.winter .pond {
+  background: #b9cfde;
+}
+.farm-scene.winter .pixel-tree {
+  background: #5f7487;
+  box-shadow: -8px 8px #5f7487, 8px 8px #5f7487, 0 -8px #7e93a4;
+}
+.farm-scene.autumn .pixel-tree {
+  background: #b07d3e;
+  box-shadow: -8px 8px #b07d3e, 8px 8px #b07d3e, 0 -8px #cf9b50;
+}
+.snowfall {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.snowfall i {
+  position: absolute;
+  top: -10px;
+  width: 5px;
+  height: 5px;
+  background: #ffffff;
+  border-radius: 50%;
+  opacity: 0.9;
+  animation-name: snowdrop;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes snowdrop {
+  0% {
+    transform: translateY(-10px) translateX(0);
+  }
+  100% {
+    transform: translateY(380px) translateX(14px);
+  }
+}
+.plot.is-dormant {
+  border-color: #9fc2dd;
+}
+.frost-mark {
+  position: absolute;
+  left: 2px;
+  top: -10px;
+  font-size: 11px;
+  z-index: 2;
+  text-shadow: 0 0 3px #fff;
+}
+.dormant-note {
+  color: #5b86a6;
+  font-size: 11px;
+  margin: 4px 0;
+}
+.growing-note {
+  color: #7c8f63;
+  font-size: 11px;
+  margin: 4px 0;
+}
+.season-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f2f6ea;
+  border: 1px solid #dde5cd;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+.season-chip b {
+  font-size: 22px;
+}
+.season-chip div {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: #5d6b4c;
+}
+.season-chip small {
+  font-size: 10px;
+  color: #96a187;
+}
+.job-row.paused {
+  opacity: 0.75;
+}
+.job-row .paused-text {
+  color: #5b86a6;
+}
+.cold-tag {
+  color: #b15b4e;
+  font-style: normal;
+}
+.rate-tag {
+  color: #6f8a4f;
+  font-style: normal;
 }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Order } from "../../../shared/contracts";
 import { items } from "../../../shared/catalog";
+import { seasonInfo } from "../../clock/lib/seasons";
 defineProps<{ orders: readonly Readonly<Order>[]; hour: number }>();
 defineEmits<{
   reserve: [id: string];
@@ -18,7 +19,7 @@ const statusName = {
   <section class="panel orders-panel">
     <div class="panel-heading">
       <h2>村庄订单</h2>
-      <span>按时交付，积累声望</span>
+      <span>条款签约时锁定 · 跨季不顺延</span>
     </div>
     <article
       v-for="order in orders"
@@ -33,7 +34,8 @@ const statusName = {
           <em>{{ "★".repeat(order.minQuality) }}起</em></strong
         ><small
           >{{ order.id }} · {{ statusName[order.status] }} ·
-          {{ Math.max(0, order.deadline - hour) }}h</small
+          {{ seasonInfo[order.season].icon }}{{ seasonInfo[order.season].name }}合约
+          · 剩 {{ Math.max(0, order.deadline - hour) }}h</small
         >
       </div>
       <b class="reward">¥{{ order.reward }}</b>
